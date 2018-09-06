@@ -1,4 +1,5 @@
 import tensorflow as tf
+import re
 
 BATCH_SIZE = 128
 MAX_WORDS_IN_REVIEW = 100  # Maximum length of a review to consider
@@ -32,6 +33,21 @@ def preprocess(review):
         - word find/replace
     RETURN: the preprocessed review in string form.
     """
+
+    # Convert to lowercase.
+    processed_review = review.lower()
+
+    # Remove punctuation by replacing punctuation with spaces.
+    processed_review = re.sub("[\.,'\"\(\)-=+_!@#$%\^&\*]", " ", processed_review)
+
+    # Remove excess spaces.
+    processed_review = re.sub(" +", " ", processed_review)
+
+    # Split at each word boundary.
+    processed_review = processed_review.split(" ")
+
+    # Remove stop words.
+    processed_review = [it for it in processed_review if it not in stop_words]
 
     return processed_review
 
