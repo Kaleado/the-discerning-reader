@@ -1,4 +1,5 @@
 import tensorflow as tf
+import re
 
 BATCH_SIZE = 128
 MAX_WORDS_IN_REVIEW = 100  # Maximum length of a review to consider
@@ -33,6 +34,21 @@ def preprocess(review):
     RETURN: the preprocessed review in string form.
     """
 
+    # Convert to lowercase.
+    processed_review = review.lower()
+
+    # Remove punctuation by replacing punctuation with spaces.
+    processed_review = re.sub("[\.,'\"\(\)-=+_!@#$%\^&\*]", " ", processed_review)
+
+    # Remove excess spaces.
+    processed_review = re.sub(" +", " ", processed_review)
+
+    # Split at each word boundary.
+    processed_review = processed_review.split(" ")
+
+    # Remove stop words.
+    processed_review = [it for it in processed_review if it not in stop_words]
+
     return processed_review
 
 
@@ -53,4 +69,40 @@ def define_graph():
     RETURNS: input, labels, optimizer, accuracy and loss
     """
 
-    return input_data, labels, dropout_keep_prob, optimizer, Accuracy, loss
+    # Nick: To confirm: what should the shape of the input and output tensors be?
+    learning_rate = 0.001 # Nick: it feels weird putting this logic in here.
+    num_units = MAX_WORDS_IN_REVIEW # Nick: Also arbitrary, unsure if more units = better.
+    input_data = tf.placeholder(tf.float32,
+                                [BATCH_SIZE, MAX_WORDS_IN_REVIEW, EMBEDDING_SIZE],
+                                "input_data")
+
+    labels = tf.placeholder(tf.float32, [None, 2], "labels")
+    dropout_keep_prob = tf.placeholder(tf.float32, shape=[]) # Nick: To do.
+
+    # Nick: Here we build the network itself. I assume this will involve using
+    # LSTM cells from tf.nn.rnn_cell.LSTMCell.
+    lstm_cell = tf.nn.rnn_cell.LSTMCell(num_units);
+    final_input_sequence = tf.unstack(input_data, MAX_WORDS_IN_REVIEW, 1)
+    rnn_output, state = tf.nn.static_rnn(lstm_cell, final_input_sequence, dtype=tf.float32)
+
+    # Nick: We need some way of converting the rnn_output to be of shape
+    # matching the labels.
+    weight = tf.get_variable("weight", [num_units, 2], dtype=tf.float32,
+                             initializer=tf.truncated_normal_initializer, trainable=True)
+    last = rnn_output[-1] # tf.gather(rnn_output, int(rnn_output.get_shape()[0]) - 1)
+    logits = tf.matmul(tf.reshape(last, [-1, num_units]), weight)
+    preds = tf.nn.softmax(logits)
+
+    # Nick: Should we be using softmax?
+    batch_cross_entropy = tf.nn.softmax_cross_entropy_with_logits_v2(labels=labels, logits=logits)
+    batch_loss = tf.reduce_mean(batch_cross_entropy, name="loss") # | || || |_
+
+    # Nick: we calculate the accuracy, this is just copied from asst1 so I have
+    # no idea if this is right.
+    correct_preds_op = tf.equal(tf.argmax(preds, 1), tf.argmax(labels, 1))
+    accuracy = tf.reduce_mean(tf.cast(correct_preds_op, tf.float32), name="accuracy")
+
+    # Nick: This is also arbitrarily chosen.
+    optimizer = tf.train.AdamOptimizer(learning_rate).minimize(batch_loss)
+
+    return input_data, labels, dropout_keep_prob, optimizer, accuracy, batch_loss

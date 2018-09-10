@@ -104,3 +104,6 @@ venv.bak/
 .mypy_cache/
 data
 glove.6B.50d.txt
+checkpoints
+tensorboard
+embeddings.pkl
