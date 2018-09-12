@@ -71,7 +71,7 @@ def define_graph():
 
     # Nick: To confirm: what should the shape of the input and output tensors be?
     learning_rate = 0.001 # Nick: it feels weird putting this logic in here.
-    num_units = MAX_WORDS_IN_REVIEW # Nick: Also arbitrary, unsure if more units = better.
+    num_units = 7 # Nick: Also arbitrary, unsure if more units = better.
     input_data = tf.placeholder(tf.float32,
                                 [BATCH_SIZE, MAX_WORDS_IN_REVIEW, EMBEDDING_SIZE],
                                 "input_data")
@@ -81,15 +81,21 @@ def define_graph():
 
     # Nick: Here we build the network itself. I assume this will involve using
     # LSTM cells from tf.nn.rnn_cell.LSTMCell.
-    lstm_cell = tf.nn.rnn_cell.LSTMCell(num_units);
-    final_input_sequence = tf.unstack(input_data, MAX_WORDS_IN_REVIEW, 1)
-    rnn_output, state = tf.nn.static_rnn(lstm_cell, final_input_sequence, dtype=tf.float32)
+    lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(num_units);
+    dropout_cell = tf.nn.rnn_cell.DropoutWrapper(lstm_cell,
+                                                 input_keep_prob=dropout_keep_prob,
+                                                 output_keep_prob=dropout_keep_prob,
+                                                 state_keep_prob=dropout_keep_prob)
+    #final_input_sequence = tf.unstack(input_data, MAX_WORDS_IN_REVIEW, 1)
+    rnn_output, state = tf.nn.dynamic_rnn(lstm_cell, input_data, dtype=tf.float32)
 
     # Nick: We need some way of converting the rnn_output to be of shape
     # matching the labels.
     weight = tf.get_variable("weight", [num_units, 2], dtype=tf.float32,
                              initializer=tf.truncated_normal_initializer, trainable=True)
-    last = rnn_output[-1] # tf.gather(rnn_output, int(rnn_output.get_shape()[0]) - 1)
+    #last = rnn_output[-1] # tf.gather(rnn_output, int(rnn_output.get_shape()[0]) - 1)
+    last = rnn_output[:, -1, :]
+    #print(last.get_shape())
     logits = tf.matmul(tf.reshape(last, [-1, num_units]), weight)
     preds = tf.nn.softmax(logits)
 

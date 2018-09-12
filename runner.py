@@ -137,7 +137,6 @@ def train():
                 num = randint(12500, 24999)
                 labels.append([0, 1])
             arr[i] = training_data_embedded[num, :, :]
-        print(arr)
         return arr, labels
 
     # Call implementation
