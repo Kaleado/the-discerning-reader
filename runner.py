@@ -34,7 +34,7 @@ MAX_WORDS_IN_REVIEW = imp.MAX_WORDS_IN_REVIEW  # Maximum length of a review to c
 EMBEDDING_SIZE = imp.EMBEDDING_SIZE  # Dimensions for each word vector
 
 SAVE_FREQ = 100
-iterations = 100000
+iterations = 15000
 
 checkpoints_dir = "./checkpoints"
 
@@ -137,7 +137,7 @@ def train():
                 num = randint(12500, 24999)
                 labels.append([0, 1])
             arr[i] = training_data_embedded[num, :, :]
-        print(arr)
+        # print(arr)
         return arr, labels
 
     # Call implementation
