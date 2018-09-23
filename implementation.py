@@ -51,8 +51,6 @@ def preprocess(review):
 
     return processed_review
 
-
-
 def define_graph():
     """
     Implement your model here. You will need to define placeholders, for the input and labels,
@@ -88,7 +86,7 @@ def define_graph():
     ###
     rnn_layers = \
     [tf.nn.rnn_cell.DropoutWrapper(tf.nn.rnn_cell.BasicLSTMCell(num_units),
-                                   output_keep_prob=dropout_keep_prob) for x in range(5)]
+                                   output_keep_prob=dropout_keep_prob) for x in range(3)]
     multi_rnn_cell = tf.nn.rnn_cell.MultiRNNCell(rnn_layers)
     rnn_output, state = tf.nn.dynamic_rnn(cell=multi_rnn_cell, inputs=input_data, dtype=tf.float32)
     ###
@@ -100,9 +98,14 @@ def define_graph():
                              initializer=tf.truncated_normal_initializer, trainable=True)
     #last = rnn_output[-1] # tf.gather(rnn_output, int(rnn_output.get_shape()[0]) - 1)
     last = rnn_output[:, -1, :]
-    #print(last.get_shape())
-    logits = tf.matmul(tf.reshape(last, [-1, num_units]), weight)
+
+    # Add dense layer here.
+    dense_layer = tf.layers.dense(last, 2)
+
+    logits = dense_layer
     preds = tf.nn.softmax(logits)
+    #logits = tf.matmul(tf.reshape(last, [-1, num_units]), weight)
+    #preds = tf.nn.softmax(logits)
 
     # Nick: Should we be using softmax?
     batch_cross_entropy = tf.nn.softmax_cross_entropy_with_logits_v2(labels=labels, logits=logits)
