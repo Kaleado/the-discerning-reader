@@ -1,9 +1,12 @@
 import tensorflow as tf
 import re
 
-BATCH_SIZE = 512
+BATCH_SIZE = 128 # larger batch size tends to work better
 MAX_WORDS_IN_REVIEW = 100  # Maximum length of a review to consider
 EMBEDDING_SIZE = 50  # Dimensions for each word vector
+NUM_LAYERS = 2 # more than 2 doesn't change much
+LEARNING_RATE = 0.001
+LSTM_SIZE = 32
 
 stop_words = set({'a', 'about', 'above', 'across', 'after', 'again', 'against',
 'all', 'almost', 'alone', 'along', 'already', 'also', 'although',
@@ -94,20 +97,16 @@ def define_graph():
     Implement your model here. You will need to define placeholders, for the input and labels,
     Note that the input is not strings of words, but the strings after the embedding lookup
     has been applied (i.e. arrays of floats).
-
     In all cases this code will be called by an unaltered runner.py. You should read this
     file and ensure your code here is compatible.
-
     Consult the assignment specification for details of which parts of the TF API are
     permitted for use in this function.
-
     You must return, in the following order, the placeholders/tensors for;
     RETURNS: input, labels, optimizer, accuracy and loss
     """
 
     # Nick: To confirm: what should the shape of the input and output tensors be?
-    learning_rate = 0.001 # Nick: it feels weird putting this logic in here.
-    num_units = 32 # Nick: Also arbitrary, unsure if more units = better.
+
     input_data = tf.placeholder(tf.float32,
                                 [BATCH_SIZE, MAX_WORDS_IN_REVIEW, EMBEDDING_SIZE],
                                 "input_data")
@@ -117,14 +116,14 @@ def define_graph():
 
     # Nick: Here we build the network itself. I assume this will involve using
     # LSTM cells from tf.nn.rnn_cell.LSTMCell.
-    # lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(num_units);
+    # lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(LSTM_SIZE);
     # dropout_cell = tf.nn.rnn_cell.DropoutWrapper(lstm_cell,
     #                                              output_keep_prob=dropout_keep_prob)
     #rnn_output, state = tf.nn.dynamic_rnn(lstm_cell, input_data, dtype=tf.float32)
     ###
     rnn_layers = \
-    [tf.nn.rnn_cell.DropoutWrapper(tf.nn.rnn_cell.BasicLSTMCell(num_units),
-                                   output_keep_prob=dropout_keep_prob) for x in range(2)]
+    [tf.nn.rnn_cell.DropoutWrapper(tf.nn.rnn_cell.BasicLSTMCell(LSTM_SIZE),
+                                   output_keep_prob=dropout_keep_prob) for x in range(NUM_LAYERS)]
     multi_rnn_cell = tf.nn.rnn_cell.MultiRNNCell(rnn_layers)
     rnn_output, state = tf.nn.dynamic_rnn(cell=multi_rnn_cell, inputs=input_data, dtype=tf.float32)
     ###
@@ -132,7 +131,7 @@ def define_graph():
 
     # Nick: We need some way of converting the rnn_output to be of shape
     # matching the labels.
-    weight = tf.get_variable("weight", [num_units, 2], dtype=tf.float32,
+    weight = tf.get_variable("weight", [LSTM_SIZE, 2], dtype=tf.float32,
                              initializer=tf.truncated_normal_initializer, trainable=True)
     #last = rnn_output[-1] # tf.gather(rnn_output, int(rnn_output.get_shape()[0]) - 1)
     last = rnn_output[:, -1, :]
@@ -142,7 +141,7 @@ def define_graph():
 
     logits = dense_layer
     preds = tf.nn.softmax(logits)
-    #logits = tf.matmul(tf.reshape(last, [-1, num_units]), weight)
+    #logits = tf.matmul(tf.reshape(last, [-1, LSTM_SIZE]), weight)
     #preds = tf.nn.softmax(logits)
 
     # Nick: Should we be using softmax?
@@ -155,6 +154,6 @@ def define_graph():
     accuracy = tf.reduce_mean(tf.cast(correct_preds_op, tf.float32), name="accuracy")
 
     # Nick: This is also arbitrarily chosen.
-    optimizer = tf.train.AdamOptimizer(learning_rate).minimize(batch_loss)
+    optimizer = tf.train.AdamOptimizer(LEARNING_RATE).minimize(batch_loss)
 
     return input_data, labels, dropout_keep_prob, optimizer, accuracy, batch_loss
