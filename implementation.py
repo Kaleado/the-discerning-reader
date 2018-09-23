@@ -79,6 +79,9 @@ def preprocess(review):
     # Convert to lowercase.
     processed_review = review.lower()
 
+    # Remove HTML tags
+    processed_review = re.sub("<br />", " ", processed_review)
+
     # Remove punctuation by replacing punctuation with spaces.
     processed_review = re.sub("[\.,'\"\(\)-=+_!@#$%\^&\*]", " ", processed_review)
 
