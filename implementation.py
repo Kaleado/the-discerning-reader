@@ -1,5 +1,8 @@
 import tensorflow as tf
 import re
+from pathlib import Path
+import pickle as pk
+# import glob
 
 BATCH_SIZE = 128 # larger batch size tends to work better
 MAX_WORDS_IN_REVIEW = 100  # Maximum length of a review to consider
@@ -7,6 +10,49 @@ EMBEDDING_SIZE = 50  # Dimensions for each word vector
 NUM_LAYERS = 2 # more than 2 doesn't change much
 LEARNING_RATE = 0.001
 LSTM_SIZE = 32
+
+def load_glove_embeddings():
+    """
+    Load the glove embeddings into a array and a dictionary with words as
+    keys and their associated index as the value. Assumes the glove
+    embeddings are located in the same directory and named "glove.6B.50d.txt"
+    If loaded for the first time, serialize the final dict for quicker loading.
+    RETURN: embeddings: the array containing word vectors
+            word_index_dict: a dictionary matching a word in string form to
+            its index in the embeddings array. e.g. {"apple": 119"}
+    """
+
+    emmbed_file = Path("./embeddings.pkl")
+    if emmbed_file.is_file():
+        # embeddings already serialized, just load them
+        print("Local Embeddings pickle found, loading...")
+        with open("./embeddings.pkl", 'rb') as f:
+            return pk.load(f)
+    else:
+        # create the embeddings
+        print("Building embeddings dictionary...")
+        data = open("glove.6B.50d.txt", 'r', encoding="utf-8")
+        embeddings = [[0] * EMBEDDING_SIZE]
+        word_index_dict = {'UNK': 0}  # first row is for unknown words
+        index = 1
+        for line in data:
+            splitLine = line.split()
+            word = tf.compat.as_str(splitLine[0])
+            embedding = [float(val) for val in splitLine[1:]]
+            embeddings.append(embedding)
+            word_index_dict[word] = index
+            index += 1
+        data.close()
+
+        # pickle them
+        with open('./embeddings.pkl', 'wb') as f:
+            print("Creating local embeddings pickle for faster loading...")
+            # Pickle the 'data' dictionary using the highest protocol available.
+            pk.dump((embeddings, word_index_dict), f, pk.HIGHEST_PROTOCOL)
+
+    return embeddings, word_index_dict
+
+glove_array, glove_dict = load_glove_embeddings()
 
 # Stop words list taken from: https://github.com/ravikiranj/twitter-sentiment-analyzer/blob/master/data/feature_list/stopwords.txt
 stop_words = set({'a', 'about', 'above', 'across', 'after', 'again', 'against',
@@ -92,7 +138,7 @@ def preprocess(review):
     processed_review = processed_review.split(" ")
 
     # Remove stop words.
-    processed_review = [it for it in processed_review if it not in stop_words]
+    processed_review = [it for it in processed_review if it not in stop_words and it in glove_dict]
 
     return processed_review[-MAX_WORDS_IN_REVIEW:-1]
 
