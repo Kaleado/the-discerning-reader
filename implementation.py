@@ -8,6 +8,7 @@ NUM_LAYERS = 2 # more than 2 doesn't change much
 LEARNING_RATE = 0.001
 LSTM_SIZE = 32
 
+# Stop words list taken from: https://github.com/ravikiranj/twitter-sentiment-analyzer/blob/master/data/feature_list/stopwords.txt
 stop_words = set({'a', 'about', 'above', 'across', 'after', 'again', 'against',
 'all', 'almost', 'alone', 'along', 'already', 'also', 'although',
 'always', 'among', 'an', 'and', 'another', 'any', 'anybody',
