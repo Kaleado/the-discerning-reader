@@ -77,17 +77,22 @@ def define_graph():
                                 "input_data")
 
     labels = tf.placeholder(tf.float32, [None, 2], "labels")
-    dropout_keep_prob = tf.placeholder(tf.float32, shape=[]) # Nick: To do.
+    dropout_keep_prob = tf.placeholder_with_default(0.6, shape=[], name="dropout_keep_prob") # Nick: To do.
 
     # Nick: Here we build the network itself. I assume this will involve using
     # LSTM cells from tf.nn.rnn_cell.LSTMCell.
-    lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(num_units);
-    dropout_cell = tf.nn.rnn_cell.DropoutWrapper(lstm_cell,
-                                                 input_keep_prob=dropout_keep_prob,
-                                                 output_keep_prob=dropout_keep_prob,
-                                                 state_keep_prob=dropout_keep_prob)
-    #final_input_sequence = tf.unstack(input_data, MAX_WORDS_IN_REVIEW, 1)
-    rnn_output, state = tf.nn.dynamic_rnn(lstm_cell, input_data, dtype=tf.float32)
+    # lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(num_units);
+    # dropout_cell = tf.nn.rnn_cell.DropoutWrapper(lstm_cell,
+    #                                              output_keep_prob=dropout_keep_prob)
+    #rnn_output, state = tf.nn.dynamic_rnn(lstm_cell, input_data, dtype=tf.float32)
+    ###
+    rnn_layers = \
+    [tf.nn.rnn_cell.DropoutWrapper(tf.nn.rnn_cell.BasicLSTMCell(num_units),
+                                   output_keep_prob=dropout_keep_prob) for x in range(5)]
+    multi_rnn_cell = tf.nn.rnn_cell.MultiRNNCell(rnn_layers)
+    rnn_output, state = tf.nn.dynamic_rnn(cell=multi_rnn_cell, inputs=input_data, dtype=tf.float32)
+    ###
+
 
     # Nick: We need some way of converting the rnn_output to be of shape
     # matching the labels.
